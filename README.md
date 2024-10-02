@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Multi-Currency Invoice Splitter
 
-## Getting Started
+## Description
 
-First, run the development server:
+Multi-Currency Invoice Splitter is a React-based web application that helps users split invoices across different currencies. It's designed for situations where an invoice is issued in one currency but paid in another, and the amount needs to be fairly distributed among multiple parties based on their original invoice amounts.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Add multiple payees and their respective invoice amounts
+- Specify invoice currency and received payment currency
+- Calculate fair share distribution based on the converted total received amount
+- Responsive design that works on both desktop and mobile devices
+- Built with React and styled using shadcn/ui components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Installation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To get started with the Multi-Currency Invoice Splitter, follow these steps:
 
-## Learn More
+1. Clone the repository:
 
-To learn more about Next.js, take a look at the following resources:
+   ```
+   git clone https://github.com/yourusername/multi-currency-invoice-splitter.git
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. Navigate to the project directory:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```
+   cd multi-currency-invoice-splitter
+   ```
 
-## Deploy on Vercel
+3. Install the dependencies:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```
+   npm install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Start the development server:
+
+   ```
+   npm run dev
+   ```
+
+5. Open your browser and visit `http://localhost:3000` to see the application running.
+
+## Usage
+
+1. Enter the invoice currency and the received payment currency.
+2. Add payees and their respective invoice amounts:
+   - Enter the payee name
+   - Enter the invoice amount
+   - Click "Add Item"
+3. Repeat step 2 for all payees involved in the invoice.
+4. Enter the total amount received after currency conversion.
+5. Click "Calculate Shares" to see how the received amount should be split among the payees.
