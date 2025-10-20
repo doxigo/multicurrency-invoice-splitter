@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencySelect } from "@/components/ui/currency-select";
 import {
 	Card,
 	CardContent,
@@ -25,9 +26,32 @@ export default function MultiCurrencyInvoiceSplitter() {
 	const [name, setName] = useState("");
 	const [amount, setAmount] = useState("");
 	const [totalReceived, setTotalReceived] = useState("");
-	const [invoiceCurrency, setInvoiceCurrency] = useState("");
-	const [receivedCurrency, setReceivedCurrency] = useState("");
+	const [invoiceCurrency, setInvoiceCurrency] = useState("NOK");
+	const [receivedCurrency, setReceivedCurrency] = useState("USDT");
 	const [results, setResults] = useState<{ name: string; share: number }[]>([]);
+
+	// Currency options including fiat and crypto
+	const fiatCurrencies = [
+		"USD",
+		"EUR",
+		"GBP",
+		"JPY",
+		"IRT",
+		"CHF",
+		"CAD",
+		"AUD",
+		"NOK",
+		"TRY",
+	];
+
+	const cryptoCurrencies = [
+		"BTC",
+		"ETH",
+		"USDT",
+		"USDC",
+		"DAI",
+		"BUSD",
+	];
 
 	const addInvoiceItem = () => {
 		if (name && amount) {
@@ -71,20 +95,24 @@ export default function MultiCurrencyInvoiceSplitter() {
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="invoiceCurrency">Invoice Currency</Label>
-								<Input
+								<CurrencySelect
 									id="invoiceCurrency"
 									value={invoiceCurrency}
-									onChange={(e) => setInvoiceCurrency(e.target.value)}
-									placeholder="e.g., USD"
+									onChange={setInvoiceCurrency}
+									fiatCurrencies={fiatCurrencies}
+									cryptoCurrencies={cryptoCurrencies}
+									placeholder="e.g., USD, EUR, USDT"
 								/>
 							</div>
 							<div className="space-y-2">
 								<Label htmlFor="receivedCurrency">Received Currency</Label>
-								<Input
+								<CurrencySelect
 									id="receivedCurrency"
 									value={receivedCurrency}
-									onChange={(e) => setReceivedCurrency(e.target.value)}
-									placeholder="e.g., EUR"
+									onChange={setReceivedCurrency}
+									fiatCurrencies={fiatCurrencies}
+									cryptoCurrencies={cryptoCurrencies}
+									placeholder="e.g., EUR, GBP, USDC"
 								/>
 							</div>
 						</div>
@@ -152,9 +180,9 @@ export default function MultiCurrencyInvoiceSplitter() {
 					<CardContent>
 						<h3 className="text-lg font-semibold mb-2">Results:</h3>
 						<div className="space-y-2">
-							{results.map((result, index) => (
+							{results.map((result) => (
 								<div
-									key={index}
+									key={result.name}
 									className="flex justify-between items-center p-2 bg-primary/10 rounded"
 								>
 									<span>{result.name}</span>
