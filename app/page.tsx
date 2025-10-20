@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,34 @@ export default function MultiCurrencyInvoiceSplitter() {
 	const [invoiceCurrency, setInvoiceCurrency] = useState("NOK");
 	const [receivedCurrency, setReceivedCurrency] = useState("USDT");
 	const [results, setResults] = useState<{ name: string; share: number }[]>([]);
+	const [copySuccess, setCopySuccess] = useState(false);
+
+	// Load data from localStorage on mount
+	useEffect(() => {
+		const savedData = localStorage.getItem("invoiceSplitterData");
+		if (savedData) {
+			try {
+				const data = JSON.parse(savedData);
+				setInvoiceItems(data.invoiceItems || []);
+				setInvoiceCurrency(data.invoiceCurrency || "NOK");
+				setReceivedCurrency(data.receivedCurrency || "USDT");
+				setTotalReceived(data.totalReceived || "");
+			} catch (error) {
+				console.error("Failed to load saved data:", error);
+			}
+		}
+	}, []);
+
+	// Save data to localStorage whenever it changes
+	useEffect(() => {
+		const dataToSave = {
+			invoiceItems,
+			invoiceCurrency,
+			receivedCurrency,
+			totalReceived,
+		};
+		localStorage.setItem("invoiceSplitterData", JSON.stringify(dataToSave));
+	}, [invoiceItems, invoiceCurrency, receivedCurrency, totalReceived]);
 
 	// Currency options including fiat and crypto
 	const fiatCurrencies = [
@@ -61,6 +89,16 @@ export default function MultiCurrencyInvoiceSplitter() {
 			]);
 			setName("");
 			setAmount("");
+			// Focus back on name input after adding
+			setTimeout(() => {
+				document.getElementById("name")?.focus();
+			}, 0);
+		}
+	};
+
+	const handleKeyPress = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			addInvoiceItem();
 		}
 	};
 
@@ -78,6 +116,65 @@ export default function MultiCurrencyInvoiceSplitter() {
 				share: (item.amount / total) * received,
 			}));
 			setResults(shares);
+		}
+	};
+
+	const getTotalInvoiceAmount = () => {
+		return invoiceItems.reduce((sum, item) => sum + item.amount, 0);
+	};
+
+	const copyResultsToClipboard = () => {
+		const total = getTotalInvoiceAmount();
+		const received = Number.parseFloat(totalReceived);
+		const rate = received / total;
+
+		let text = "Multi-Currency Invoice Split Results\n";
+		text += "=====================================\n\n";
+		text += `Invoice Currency: ${invoiceCurrency}\n`;
+		text += `Received Currency: ${receivedCurrency}\n`;
+		text += `Total Invoice Amount: ${total.toFixed(2)} ${invoiceCurrency}\n`;
+		text += `Total Received: ${received.toFixed(2)} ${receivedCurrency}\n`;
+		text += `Conversion Rate: 1 ${invoiceCurrency} = ${rate.toFixed(4)} ${receivedCurrency}\n\n`;
+		text += "Individual Shares:\n";
+		text += "-------------------\n";
+		for (const result of results) {
+			text += `${result.name}: ${result.share.toFixed(2)} ${receivedCurrency}\n`;
+		}
+
+		navigator.clipboard.writeText(text).then(() => {
+			setCopySuccess(true);
+			setTimeout(() => setCopySuccess(false), 2000);
+		});
+	};
+
+	const downloadResults = () => {
+		const total = getTotalInvoiceAmount();
+		const received = Number.parseFloat(totalReceived);
+
+		let csv = "Name,Invoice Amount,Currency,Share Amount,Share Currency\n";
+		for (const result of results) {
+			const originalItem = invoiceItems.find((item) => item.name === result.name);
+			csv += `"${result.name}",${originalItem?.amount.toFixed(2)},${invoiceCurrency},${result.share.toFixed(2)},${receivedCurrency}\n`;
+		}
+		csv += `\nTotal,${total.toFixed(2)},${invoiceCurrency},${received.toFixed(2)},${receivedCurrency}\n`;
+
+		const blob = new Blob([csv], { type: "text/csv" });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `invoice-split-${new Date().toISOString().split("T")[0]}.csv`;
+		a.click();
+		window.URL.revokeObjectURL(url);
+	};
+
+	const clearSession = () => {
+		if (confirm("Are you sure you want to clear all data?")) {
+			setInvoiceItems([]);
+			setName("");
+			setAmount("");
+			setTotalReceived("");
+			setResults([]);
+			localStorage.removeItem("invoiceSplitterData");
 		}
 	};
 
@@ -123,7 +220,9 @@ export default function MultiCurrencyInvoiceSplitter() {
 									id="name"
 									value={name}
 									onChange={(e) => setName(e.target.value)}
+									onKeyPress={handleKeyPress}
 									placeholder="Enter payee name"
+									autoFocus
 								/>
 							</div>
 							<div className="space-y-2">
@@ -133,6 +232,7 @@ export default function MultiCurrencyInvoiceSplitter() {
 									type="number"
 									value={amount}
 									onChange={(e) => setAmount(e.target.value)}
+									onKeyPress={handleKeyPress}
 									placeholder={`Amount in ${invoiceCurrency}`}
 								/>
 							</div>
@@ -160,6 +260,14 @@ export default function MultiCurrencyInvoiceSplitter() {
 									</Button>
 								</div>
 							))}
+							{invoiceItems.length > 0 && (
+								<div className="flex justify-between items-center p-2 bg-primary/10 rounded font-semibold">
+									<span>Total Invoice Amount:</span>
+									<span>
+										{getTotalInvoiceAmount().toFixed(2)} {invoiceCurrency}
+									</span>
+								</div>
+							)}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="totalReceived">Total Received (Converted)</Label>
@@ -173,24 +281,89 @@ export default function MultiCurrencyInvoiceSplitter() {
 						</div>
 					</div>
 				</CardContent>
-				<CardFooter className="flex justify-between">
-					<Button onClick={calculateShares}>Calculate Shares</Button>
+				<CardFooter className="flex justify-between gap-2">
+					<Button onClick={calculateShares} disabled={invoiceItems.length === 0 || !totalReceived}>
+						Calculate Shares
+					</Button>
+					{invoiceItems.length > 0 && (
+						<Button variant="outline" onClick={clearSession}>
+							Clear All
+						</Button>
+					)}
 				</CardFooter>
 				{results.length > 0 && (
 					<CardContent>
-						<h3 className="text-lg font-semibold mb-2">Results:</h3>
-						<div className="space-y-2">
-							{results.map((result) => (
-								<div
-									key={result.name}
-									className="flex justify-between items-center p-2 bg-primary/10 rounded"
+						<div className="flex justify-between items-center mb-3">
+							<h3 className="text-lg font-semibold">Results:</h3>
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={copyResultsToClipboard}
 								>
-									<span>{result.name}</span>
-									<span className="font-semibold">
-										{result.share.toFixed(2)} {receivedCurrency}
+									<Copy className="mr-2 h-4 w-4" />
+									{copySuccess ? "Copied!" : "Copy"}
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={downloadResults}
+								>
+									<Download className="mr-2 h-4 w-4" />
+									CSV
+								</Button>
+							</div>
+						</div>
+						<div className="space-y-2">
+							{results.map((result) => {
+								const originalItem = invoiceItems.find(
+									(item) => item.name === result.name
+								);
+								const percentage =
+									originalItem && getTotalInvoiceAmount() > 0
+										? (originalItem.amount / getTotalInvoiceAmount()) * 100
+										: 0;
+								return (
+									<div
+										key={result.name}
+										className="flex justify-between items-center p-2 bg-primary/10 rounded"
+									>
+										<div className="flex flex-col">
+											<span className="font-medium">{result.name}</span>
+											<span className="text-xs text-muted-foreground">
+												{percentage.toFixed(1)}% of total
+											</span>
+										</div>
+										<span className="font-semibold">
+											{result.share.toFixed(2)} {receivedCurrency}
+										</span>
+									</div>
+								);
+							})}
+							<div className="mt-4 p-3 bg-secondary rounded">
+								<div className="flex justify-between text-sm mb-1">
+									<span className="text-muted-foreground">Total Invoice:</span>
+									<span className="font-medium">
+										{getTotalInvoiceAmount().toFixed(2)} {invoiceCurrency}
 									</span>
 								</div>
-							))}
+								<div className="flex justify-between text-sm mb-1">
+									<span className="text-muted-foreground">Total Received:</span>
+									<span className="font-medium">
+										{Number.parseFloat(totalReceived).toFixed(2)} {receivedCurrency}
+									</span>
+								</div>
+								<div className="flex justify-between text-sm">
+									<span className="text-muted-foreground">Conversion Rate:</span>
+									<span className="font-medium">
+										1 {invoiceCurrency} ={" "}
+										{(
+											Number.parseFloat(totalReceived) / getTotalInvoiceAmount()
+										).toFixed(4)}{" "}
+										{receivedCurrency}
+									</span>
+								</div>
+							</div>
 						</div>
 					</CardContent>
 				)}
